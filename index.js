@@ -146,4 +146,4 @@ getReservations();
 
 setInterval(() => {
     getReservations() 
-}, 300000);
+}, 900000);
