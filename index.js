@@ -22,6 +22,16 @@ app.use('/api', require('./routes/calendars'));
 app.use('/api', require('./routes/login'));
 app.listen(3000, () => {console.log('Server on port ', 3000)});
 
+app.get('/api/exec/get_reservations', [ validUser ], async (req, res) => {
+    try {
+        await getReservations();
+        const calendar = await Calendar.find().sort({lastCheck: -1}).limit(1).select('lastCheck');
+        res.json({executed: true, lastCheck: calendar[0].lastCheck});        
+    } catch (error) {
+        res.json({type: error, msg: error.message})        
+    }
+});
+
 app.get('/api/reservations', [ validUser ], async (req, res) => {
     const reservations = await Reservation.find({status: 'CONFIRMED'});
     res.json({reservations: reservations});
@@ -35,6 +45,16 @@ app.get('/api/reservations/finalized', [ validUser ], async (req, res) => {
 app.get('/api/reservations/cancelled', [ validUser ] ,async (req, res) => {
     const reservations = await Reservation.find({status: 'CANCELLED'});
     res.json({reservations: reservations});
+});
+
+app.get('/api/reservations/recent', [ validUser ] ,async (req, res) => {
+    const reservations = await Reservation.find({status: 'CONFIRMED'}).sort({createdAt: -1}).limit(20);
+    res.json({reservations: reservations});
+});
+
+app.get('/api/calendars/last_check', [ validUser ] ,async (req, res) => {
+    const calendar = await Calendar.find().sort({lastCheck: -1}).limit(1).select('lastCheck');
+    res.json({lastCheck: calendar});
 });
 
 app.get('/api/auth/validate', validateToken);
@@ -109,7 +129,7 @@ async function getReservations() {
             });
             if (reservationsForCalendar.length > 0){
                 for(const element of reservationsForCalendar){  
-                    if (setDate(element.end) === today){
+                    if (setDate(element.end) <= today){
                         console.log(`salida: ${setDate(element.end)} - hoy: ${today}`)
                         await Reservation.findByIdAndUpdate(element.id, {$set: {status: 'FINALIZED'}});   
                         console.log(`la reservación: ${element} se marcó como finalizada`); 
