@@ -11,7 +11,6 @@ const cors = require('cors');
 const { validateToken, validUser } = require('./auth/auth')
 
 require('./database');
-let flag = true;
 const app = express();
 
 app.use(express.json());
